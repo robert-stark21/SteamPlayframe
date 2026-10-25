@@ -3,6 +3,13 @@ import type { GameCardData } from '../../shared/types.ts';
 import { ExternalIcon } from '../icons.tsx';
 import { ReviewLine } from './ReviewLine.tsx';
 
+/** A short excerpt cut at a word, so the card never hides overflowing text. */
+export function excerpt(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), max - 20)).replace(/[s,.;:!-]+$/, '')}…`;
+}
+
 /** Two initials from the name, skipping a leading article: "The Witcher 3" gives "W3". */
 export function monogram(name: string): string {
   const words = name.replace(/['’]/g, '').replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean);
@@ -50,7 +57,7 @@ export function GameCard({ game, eager, loadingStore = false }: Props) {
         </h3>
         <ReviewLine reviews={game.reviews} />
         {game.description ? (
-          <p className="card__desc">{game.description}</p>
+          <p className="card__desc" title={game.description}>{excerpt(game.description, 110)}</p>
         ) : !game.storeChecked && loadingStore ? (
           <span className="card__desc sk sk--line" aria-hidden="true" />
         ) : null}

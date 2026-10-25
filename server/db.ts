@@ -12,6 +12,8 @@ export function openDb(path: string): DB {
   if (path !== ':memory:') {
     db.exec('PRAGMA journal_mode = WAL;');
     db.exec('PRAGMA busy_timeout = 5000;');
+    // Keep the write-ahead log from growing without bound on disk.
+    db.exec('PRAGMA journal_size_limit = 67108864;');
   }
   migrate(db);
   return db;
@@ -20,6 +22,23 @@ export function openDb(path: string): DB {
 /** A finished snapshot (Vercel): no migrations, no writes, no WAL. */
 export function openDbReadOnly(path: string): DB {
   return new DatabaseSync(path, { readOnly: true });
+}
+
+/**
+ * The local server's two connections to a live database an import may be writing:
+ * one only reads; the other writes and gives up after 250 ms instead of freezing the
+ * event loop (node:sqlite calls are synchronous).
+ *
+ * Never open a live WAL database with readOnly: a read-only connection cannot use the
+ * shared WAL index, so SQLite re-reads the whole write-ahead log on every query
+ * (seconds to minutes while an import is writing).
+ */
+export function openServerDbs(path: string): { read: DB; write: DB } {
+  const write = openDb(path); // applies migrations
+  write.exec('PRAGMA busy_timeout = 250;');
+  const read = new DatabaseSync(path);
+  read.exec('PRAGMA busy_timeout = 2000;');
+  return { read, write };
 }
 
 export function migrate(db: DB): number {

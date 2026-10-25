@@ -103,6 +103,38 @@ export function App() {
     return () => mq.removeEventListener('change', onChange);
   }, []);
 
+  // On small screens, once the header's Filters button scrolls away, a floating one takes over.
+  const toolsRef = useRef<HTMLDivElement>(null);
+  const [toolsOut, setToolsOut] = useState(false);
+  useEffect(() => {
+    const el = toolsRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setToolsOut(!e.isIntersecting && e.boundingClientRect.top < 0));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // The floating button steps aside while scrolling down and returns on the way up.
+  const [fabAway, setFabAway] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const y = window.scrollY;
+        if (Math.abs(y - last) > 8) setFabAway(y > last);
+        last = y;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+
   const goToPage = (p: number) => {
     setPage(p);
     resultsRef.current?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
@@ -115,6 +147,7 @@ export function App() {
   };
 
   const filtersOn = activeFilterCount(query);
+  const showFloat = toolsOut && !drawerOpen && !!catalog;
   const sorts: SortKey[] = catalog?.sorts ?? ['name_asc', 'name_desc'];
   const firstLoad = !data && status !== 'error';
   const total = data?.total ?? 0;
@@ -136,12 +169,12 @@ export function App() {
 
         <div className="masthead">
           <h1 className="masthead__title">Find your next world.</h1>
-          <div className="masthead__tools">
+          <div className="masthead__tools" ref={toolsRef}>
             <SearchBar value={text} onChange={setText} />
-            <button type="button" className="btn btn--filters" onClick={() => setDrawerOpen(true)} disabled={!catalog}>
+            <button type="button" className="btn btn--filters" onClick={() => setDrawerOpen(true)} disabled={!catalog} aria-label={filtersOn ? `Filters, ${filtersOn} active` : 'Filters'}>
               <SlidersIcon size={18} />
-              <span>Filters</span>
-              {filtersOn > 0 && <span className="btn__badge num" aria-label={`${filtersOn} active`}>{filtersOn}</span>}
+              <span className="btn--filters__text">Filters</span>
+              {filtersOn > 0 && <span className="btn__badge num" aria-hidden="true">{filtersOn}</span>}
             </button>
           </div>
         </div>
@@ -253,6 +286,14 @@ export function App() {
           PLAYFRAME is not affiliated with Valve or Steam. Catalog reference: <a href="https://steamdb.info/" target="_blank" rel="noopener noreferrer">SteamDB</a>.
         </p>
       </footer>
+
+      {showFloat && (
+        <button type="button" className={`fab${fabAway ? ' fab--away' : ''}`} onClick={() => setDrawerOpen(true)} aria-label={filtersOn ? `Filters, ${filtersOn} active` : 'Filters'}>
+          <SlidersIcon size={18} />
+          <span>Filters</span>
+          {filtersOn > 0 && <span className="btn__badge num" aria-hidden="true">{filtersOn}</span>}
+        </button>
+      )}
 
       {catalog && (
         <FilterDrawer

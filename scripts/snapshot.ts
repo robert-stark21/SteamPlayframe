@@ -12,7 +12,9 @@ import { config } from '../server/config.ts';
 const out = 'data/snapshot.db';
 for (const f of [out, `${out}-journal`, `${out}-wal`, `${out}-shm`]) if (existsSync(f)) rmSync(f);
 
-const src = new DatabaseSync(config.databasePath, { readOnly: true });
+// Read-write on purpose: a read-only connection to a live WAL database re-reads the whole log.
+const src = new DatabaseSync(config.databasePath);
+src.exec('PRAGMA busy_timeout = 5000;');
 src.exec(`VACUUM INTO '${out}'`);
 src.close();
 

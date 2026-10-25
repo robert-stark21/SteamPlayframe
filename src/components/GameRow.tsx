@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { GameCardData } from '../../shared/types.ts';
 import { ExternalIcon } from '../icons.tsx';
-import { monogram } from './GameCard.tsx';
+import { excerpt, monogram } from './GameCard.tsx';
 import { ReviewLine } from './ReviewLine.tsx';
 
 interface Props {
@@ -50,7 +50,7 @@ export function GameRow({ game, eager, loadingStore }: Props) {
           <a {...ext}>{game.name}</a>
         </h3>
         {game.description ? (
-          <p className="row__desc">{game.description}</p>
+          <p className="row__desc">{excerpt(game.description, 320)}</p>
         ) : !game.storeChecked && loadingStore ? (
           <span className="row__desc-sk" aria-hidden="true">
             <span className="sk sk--line" />

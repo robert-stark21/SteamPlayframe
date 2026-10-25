@@ -25,6 +25,9 @@ export function Pagination({ page, pageCount, onPage }: Props) {
         <ArrowLeftIcon size={18} />
         <span>Previous</span>
       </button>
+      <p className="pager__status num" aria-hidden="true">
+        Page {page.toLocaleString('en')} of {pageCount.toLocaleString('en')}
+      </p>
       <ol className="pager__list">
         {pages(page, pageCount).map((p, i) =>
           p === 'gap' ? (

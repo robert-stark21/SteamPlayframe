@@ -3,11 +3,11 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve } from 'node:path';
 import { config } from './config.ts';
-import { openDb } from './db.ts';
+import { openServerDbs } from './db.ts';
 import { createApi } from './api.ts';
 
-const db = openDb(config.databasePath);
-const api = createApi(db, { readOnly: false, country: config.country });
+const dbs = openServerDbs(config.databasePath);
+const api = createApi(dbs.read, { readOnly: false, writeDb: dbs.write, country: config.country });
 const distDir = resolve('dist');
 
 const MIME: Record<string, string> = {
@@ -51,7 +51,12 @@ const server = createServer((req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost');
   if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'Method not allowed' });
   if (!url.pathname.startsWith('/api/')) return serveStatic(req, res, url.pathname);
-  api.handle(url).then((r) => json(res, r.status, r.body));
+  const started = Date.now();
+  api.handle(url).then((r) => {
+    json(res, r.status, r.body);
+    const ms = Date.now() - started;
+    if (ms > 2000) console.warn(`[api] slow: ${ms} ms ${url.pathname}${url.search}`);
+  });
 });
 
 server.listen(config.apiPort, '127.0.0.1', () => {

@@ -24,7 +24,7 @@ export function SearchBar({ value, onChange }: Props) {
         autoComplete="off"
         spellCheck={false}
         maxLength={MAX_QUERY_LENGTH}
-        placeholder="Search games by name"
+        placeholder="Search games"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />

@@ -25,7 +25,7 @@ export interface ApiResult {
 type StoreEntry = { description: string | null; screenshots: Screenshot[] | null; developer: string | null; publisher: string | null; checked: boolean };
 type StoreRow = { appid: number; short_description: string | null; screenshots: string | null; developer: string | null; publisher: string | null; store_fetched_at: string | null };
 
-export function createApi(db: DB, opts: ApiOptions) {
+export function createApi(db: DB, opts: ApiOptions & { writeDb?: DB }) {
   // Short caches keep repeated pages and Back/Forward fast on a large catalog, and stay
   // fresh enough while an import is writing.
   const CACHE_MS = 20_000;
@@ -66,8 +66,15 @@ export function createApi(db: DB, opts: ApiOptions) {
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
           const d = await storeDetails(appid, opts.country);
-          if (opts.readOnly) memory.set(appid, d);
-          else applyStoreDetails(db, appid, d, at);
+          if (opts.readOnly || !opts.writeDb) memory.set(appid, d);
+          else {
+            try {
+              applyStoreDetails(opts.writeDb, appid, d, at);
+            } catch {
+              // The import holds the write lock: show it now from memory, save it next time.
+              memory.set(appid, d);
+            }
+          }
           failures = 0;
           return;
         } catch (err) {

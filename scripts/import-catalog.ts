@@ -227,8 +227,22 @@ async function themesPass(fetchLists = true) {
   log("Themes rebuilt from each game's top Steam tags");
 }
 
+/** Fold the write-ahead log back every minute so readers (the site) stay fast. */
+function checkpointLoop() {
+  const timer = setInterval(() => {
+    try {
+      const r = db.prepare('PRAGMA wal_checkpoint(PASSIVE)').all()[0] as { busy: number; log: number; checkpointed: number };
+      if (r.log - r.checkpointed > 5000) log(`WAL behind: ${r.log - r.checkpointed} pages not yet folded back (a reader is holding an old view)`);
+    } catch {
+      /* busy: try again next minute */
+    }
+  }, 60_000);
+  return () => clearInterval(timer);
+}
+
 async function main() {
   log(`Database ${config.databasePath}, ${CONCURRENCY} detail workers`);
+  const stopCheckpoints = checkpointLoop();
   ensureDescriptorFacets(db);
   if (args.includes('--themes-only')) {
     await themesPass(args.includes('--refetch-tags') || count('SELECT COUNT(*) AS n FROM spy_tag') === 0);
@@ -244,6 +258,7 @@ async function main() {
     if (!stopping) await themesPass();
   })();
   await Promise.all([listLoop(), searchLoop(), detailsLoop(), themes]);
+  stopCheckpoints();
   db.exec(`DELETE FROM facet WHERE grp != 'content_descriptor' AND id NOT IN (SELECT DISTINCT facet_id FROM game_facet)`);
   setMeta(db, 'last_updated', new Date().toISOString());
   beat();
