@@ -13,6 +13,7 @@ import { FilterPanel } from './components/FilterPanel.tsx';
 import { GameGrid, GridSkeleton } from './components/GameGrid.tsx';
 import { Pagination } from './components/Pagination.tsx';
 import { SearchBar } from './components/SearchBar.tsx';
+import { Donate, DonateButton } from './components/Donate.tsx';
 
 const SORT_LABEL: Record<SortKey, string> = {
   rating_desc: 'Best rated',
@@ -161,10 +162,13 @@ export function App() {
             <span className="wordmark__mark"><FrameMark size={24} /></span>
             <span>PLAYFRAME</span>
           </a>
-          {catalog?.mode === 'demo' && <span className="badge-demo">Demo catalog</span>}
-          {catalog && catalog.mode !== 'demo' && catalog.importRunning && (
-            <span className="badge-demo" role="status">Import running</span>
-          )}
+          <div className="brand__row">
+            <DonateButton />
+            {catalog?.mode === 'demo' && <span className="badge-demo">Demo catalog</span>}
+            {catalog && catalog.mode !== 'demo' && catalog.importRunning && (
+              <span className="badge-demo" role="status">Import running</span>
+            )}
+          </div>
         </header>
 
         <div className="masthead">
@@ -205,6 +209,7 @@ export function App() {
               {Array.from({ length: 4 }, (_, i) => <span key={i} className="sk sk--line" />)}
             </div>
           )}
+          <Donate variant="sidebar" />
         </aside>
 
         <main className="results" id="results" ref={resultsRef} tabIndex={-1} aria-labelledby="results-title">
@@ -276,6 +281,7 @@ export function App() {
       </div>
 
       <footer className="foot">
+        <Donate variant="footer" />
         <p>{sourceLine(catalog)}</p>
         <p className="num">
           {catalog ? `${catalog.gameCount.toLocaleString('en')} games indexed. ` : ''}

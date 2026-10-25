@@ -64,6 +64,10 @@ SteamDB is a reference only: it offers no public API and does not allow scraping
 
 Filter logic: OR inside a group, AND across groups, search (case-insensitive, trimmed) AND everything. Filtering, counting and sorting run in SQL over the whole catalog before a page of 24 is taken.
 
+## Buy me a coffee
+
+Set `VITE_DONATE_URL` in `.env` (for example `https://buymeacoffee.com/yourname`) and rebuild: a "Buy me a coffee" block with a link and a QR code appears at the end of the filter column on desktop and in the page footer on phones. To show your own QR instead (a bank or wallet code), put the image in `public/` and set `VITE_DONATE_QR_IMAGE=/donate-qr.png`. With neither set, the block is hidden.
+
 ## Deploy to Vercel (snapshot)
 
 Vercel runs no long-lived server and has a read-only disk, so the catalog ships as a read-only SQLite snapshot inside one API function:

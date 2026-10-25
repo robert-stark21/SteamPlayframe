@@ -5,6 +5,8 @@
 /* Hallmark · pre-emit critique: P4 H4 E4 S4 R5 V4 · weakest: S, a dark grid of game cards is common; the bezel and the orange-only selection state carry identity, and every count on screen is the real indexed number */
 /* Hallmark · dismissed 41 · --color-frame-ink is the ink for text on the off-white bezel (search field, current page), never set on the black surface */
 /* Hallmark · dismissed F25 · on a phone the filter sidebar moves into the Filters sheet behind the badge button, every option still reachable */
+/* Hallmark · dismissed 28a · the lazy image is an optional donate QR at the end of the filter column and in the footer, never the largest paint */
+/* Hallmark · answered F4 · orange stays the one primary; the coffee link wears the off-white bezel tone shared by the floating Filters button and the view switch */
 /* Hallmark · answered F7 · the pills are the search field, the include and exclude switch, the skip link, the filter badge and skeleton bars: controls and status marks, never boxes */
 @import url("./tokens.css");
 @import url("./base.css");
@@ -37,6 +39,14 @@ body { padding: var(--space-lg); background: var(--color-paper); }
 .wordmark__mark { color: var(--color-accent); flex-shrink: 0; }
 .wordmark:hover { color: var(--color-ink-2); }
 .wordmark:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 4px; }
+.brand__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); }
+.brand__row:empty { display: none; }
+.coffee { display: inline-flex; align-items: center; gap: var(--space-xs); min-height: var(--control-h); padding: 0 var(--space-md); border-radius: var(--radius-pill); background: var(--color-frame); color: var(--color-frame-ink); font-size: var(--text-sm); font-weight: 600; text-decoration: none; white-space: nowrap; transition: background-color var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out); }
+.coffee svg { color: var(--color-accent); flex-shrink: 0; }
+.coffee:hover { background: color-mix(in oklab, var(--color-frame) 88%, var(--color-frame-ink)); }
+.coffee:active { transform: translateY(1px); }
+.coffee:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.coffee__short { display: none; }
 .badge-demo { display: inline-flex; align-items: center; min-height: 28px; padding: 0 var(--space-sm); border: 1px solid var(--color-edge); border-radius: var(--radius-pill); color: var(--color-ink-2); font-size: var(--text-sm); white-space: nowrap; }
 
 /* Masthead: the line and the search */
@@ -281,10 +291,30 @@ body { padding: var(--space-lg); background: var(--color-paper); }
 .pager__status { display: none; margin: 0; color: var(--color-ink-2); font-size: var(--text-sm); font-weight: 600; }
 .pager__gap { display: grid; place-items: center; min-width: 24px; color: var(--color-muted); }
 
+/* Buy me a coffee: end of the filter column on desktop, the page footer below 64rem */
+.donate { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-md); align-items: center; padding: var(--space-md); border-radius: var(--radius-card); background: var(--color-paper-2); color: var(--color-ink); }
+.donate--sidebar { margin-top: var(--space-lg); grid-template-columns: minmax(0, 1fr); }
+.donate--footer { display: none; grid-column: 1 / -1; }
+.donate__text { display: grid; gap: var(--space-xs); justify-items: start; min-width: 0; }
+.donate__title { display: inline-flex; align-items: center; gap: var(--space-xs); font: 600 var(--text-md)/1.2 var(--font-body); color: var(--color-ink); }
+.donate__title svg { color: var(--color-accent); }
+.donate__line { color: var(--color-muted); font-size: var(--text-sm); line-height: 1.45; }
+.donate__btn { display: inline-flex; align-items: center; gap: var(--space-xs); min-height: var(--control-h); padding: 0 var(--space-md); border-radius: var(--radius-pill); background: var(--color-frame); color: var(--color-frame-ink); font-size: var(--text-sm); font-weight: 600; text-decoration: none; white-space: nowrap; transition: background-color var(--dur-micro) var(--ease-out); }
+.donate__btn:hover { background: color-mix(in oklab, var(--color-frame) 88%, var(--color-frame-ink)); }
+.donate__btn:active { transform: translateY(1px); }
+.donate__btn:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.donate__qr { display: grid; gap: var(--space-2xs); justify-items: center; margin: 0; }
+.donate__qr > span, .donate__qr > img { display: block; width: 112px; height: 112px; padding: var(--space-xs); border-radius: var(--radius-media); background: var(--color-frame); }
+.donate--sidebar .donate__qr > span, .donate--sidebar .donate__qr > img { width: 140px; height: 140px; }
+.donate__qr svg { width: 100%; height: 100%; }
+.donate__qr svg path[stroke] { stroke: var(--color-frame-ink); }
+.donate__qr svg path[fill] { fill: var(--color-frame); }
+.donate__cap { color: var(--color-muted); font-size: var(--text-xs); }
+
 /* Footer */
 .foot { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-md) var(--space-xl); max-width: var(--container); margin: var(--space-lg) auto 0; padding: var(--space-md) var(--space-xl) var(--space-lg); color: var(--color-muted); font-size: var(--text-sm); line-height: 1.5; }
-.foot a { color: var(--color-ink-2); border-radius: var(--space-3xs); }
-.foot a:hover { color: var(--color-ink); }
+.foot a:not(.donate__btn) { color: var(--color-ink-2); border-radius: var(--space-3xs); }
+.foot a:not(.donate__btn):hover { color: var(--color-ink); }
 .foot a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 
 /* Floating Filters button (small screens, after the header's one scrolls away) */
@@ -327,6 +357,7 @@ body { padding: var(--space-lg); background: var(--color-paper); }
 
 @media (max-width: 64rem) {
   .fab { display: inline-flex; }
+  .donate--footer { display: grid; margin-bottom: var(--space-sm); }
 }
 
 /* Compact game cards when a column is narrow (one column on phones) */
@@ -349,6 +380,12 @@ body { padding: var(--space-lg); background: var(--color-paper); }
 
 @media (max-width: 40rem) {
   body { padding: var(--space-xs); }
+  .brand { gap: var(--space-xs); }
+  .brand__row { flex-wrap: nowrap; justify-content: flex-end; min-width: 0; }
+  .coffee { min-height: 40px; padding: 0 var(--space-sm); }
+  .coffee__long { display: none; }
+  .coffee__short { display: inline; }
+  .brand__row .badge-demo { display: none; }
   .masthead__title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .masthead__tools { flex-wrap: nowrap; }
   .search { flex-basis: auto; }
@@ -376,8 +413,15 @@ body { padding: var(--space-lg); background: var(--color-paper); }
   .foot { grid-template-columns: minmax(0, 1fr); padding: var(--space-md); }
 }
 
+/* Very narrow phones: the coffee button becomes a round icon so it never meets the wordmark */
+@media (max-width: 22.5rem) {
+  .coffee { width: 40px; padding: 0; justify-content: center; }
+  .coffee__short { display: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .drawer[open], .sk, .fab { animation: none; }
+  .coffee:active { transform: none; }
   .fab { transition: none; }
   .fgroup__chevron, .btn, .grid, .card, .opt__box { transition: none; }
   .btn:active, .opt input:active + .opt__box, .seg input:active + label, .pager__num:active, .pager__step:active:not(:disabled) { transform: none; }

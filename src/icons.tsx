@@ -62,3 +62,6 @@ export const ListIcon = ({ size }: P) => (
 export const ExcludeIcon = ({ size }: P) => (
   <svg aria-hidden="true" {...base(size)}><circle cx="12" cy="12" r="8.5" /><path d="M8 12h8" /></svg>
 );
+export const CoffeeIcon = ({ size }: P) => (
+  <svg aria-hidden="true" {...base(size)}><path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z" /><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16" /><path d="M8 3.5c0 1 1 1.5 1 2.5M12 3.5c0 1 1 1.5 1 2.5" /></svg>
+);
