@@ -1,16 +1,29 @@
 import { useId, useMemo, useState } from 'react';
-import type { DescriptorMode, Facet } from '../../shared/types.ts';
-import { CheckIcon, ChevronIcon } from '../icons.tsx';
+import type { DescriptorMode } from '../../shared/types.ts';
+import { CheckIcon, ChevronIcon, ExcludeIcon } from '../icons.tsx';
 
 const VISIBLE = 8;
+
+/** Anything the group lists: a facet or a Steam tag. */
+export interface Option {
+  id: string;
+  slug: string;
+  label: string;
+  total: number;
+}
 
 interface Props {
   title: string;
   searchLabel: string;
-  facets: Facet[];
+  facets: Option[];
   selected: string[];
   counts: Record<string, number> | null;
   onToggle: (slug: string) => void;
+  /** Options to leave out of the results; when given, every row gets an exclude button. */
+  excluded?: string[];
+  onExclude?: (slug: string) => void;
+  /** What one option is called in the hint, e.g. "tag". */
+  noun?: string;
   defaultOpen?: boolean;
   /** Content descriptor only. */
   mode?: DescriptorMode;
@@ -18,7 +31,7 @@ interface Props {
   note?: string;
 }
 
-export function FilterGroup({ title, searchLabel, facets, selected, counts, onToggle, defaultOpen = true, mode, onModeChange, note }: Props) {
+export function FilterGroup({ title, searchLabel, facets, selected, counts, onToggle, excluded = [], onExclude, noun = 'option', defaultOpen = true, mode, onModeChange, note }: Props) {
   const id = useId();
   const [open, setOpen] = useState(defaultOpen);
   const [term, setTerm] = useState('');
@@ -29,16 +42,18 @@ export function FilterGroup({ title, searchLabel, facets, selected, counts, onTo
     return t ? facets.filter((f) => f.label.toLowerCase().includes(t)) : facets;
   }, [facets, term]);
 
-  // Selected options always stay in view, even when collapsed to the first eight.
-  const shown = all || term ? matches : matches.filter((f, i) => i < VISIBLE || selected.includes(f.slug));
+  // Chosen options (in or out) always stay in view, even when collapsed to the first eight.
+  const chosen = (slug: string) => selected.includes(slug) || excluded.includes(slug);
+  const shown = all || term ? matches : matches.filter((f, i) => i < VISIBLE || chosen(f.slug));
   const hiddenCount = matches.length - shown.length;
+  const summary = [selected.length ? `${selected.length} selected` : '', excluded.length ? `${excluded.length} excluded` : ''].filter(Boolean).join(', ');
 
   return (
     <section className="fgroup" aria-labelledby={`${id}-h`}>
       <h3 className="fgroup__head" id={`${id}-h`}>
         <button type="button" className="fgroup__toggle" aria-expanded={open} aria-controls={`${id}-body`} onClick={() => setOpen((o) => !o)}>
           <span className="fgroup__title">{title}</span>
-          {selected.length > 0 && <span className="fgroup__count">{selected.length} selected</span>}
+          {summary && <span className="fgroup__count">{summary}</span>}
           <span className="fgroup__chevron"><ChevronIcon size={18} /></span>
         </button>
       </h3>
@@ -55,6 +70,8 @@ export function FilterGroup({ title, searchLabel, facets, selected, counts, onTo
             ))}
           </fieldset>
         )}
+
+        {onExclude && <p className="fgroup__hint">Tick to include. Use <ExcludeIcon size={14} /> to leave a {noun} out.</p>}
 
         {facets.length > VISIBLE && (
           <>
@@ -75,15 +92,28 @@ export function FilterGroup({ title, searchLabel, facets, selected, counts, onTo
           <ul className="opts">
             {shown.map((f) => {
               const checked = selected.includes(f.slug);
+              const out = excluded.includes(f.slug);
               const n = counts ? counts[f.id] ?? 0 : f.total;
               return (
-                <li key={f.id}>
-                  <label className={`opt${!checked && n === 0 ? ' opt--empty' : ''}`}>
+                <li key={f.id} className={`optrow${out ? ' optrow--out' : ''}`}>
+                  <label className={`opt${!checked && !out && n === 0 ? ' opt--empty' : ''}`}>
                     <input type="checkbox" checked={checked} onChange={() => onToggle(f.slug)} />
                     <span className="opt__box" aria-hidden="true"><CheckIcon size={14} /></span>
                     <span className="opt__label">{f.label}</span>
-                    <span className="opt__n num" aria-label={`${n} games`}>{n}</span>
+                    <span className="opt__n num" aria-label={`${n} games`}>{n.toLocaleString('en')}</span>
                   </label>
+                  {onExclude && (
+                    <button
+                      type="button"
+                      className="opt__x"
+                      aria-pressed={out}
+                      aria-label={out ? `Stop excluding ${f.label}` : `Exclude ${f.label}`}
+                      title={out ? `Excluded: ${f.label}` : `Exclude ${f.label}`}
+                      onClick={() => onExclude(f.slug)}
+                    >
+                      <ExcludeIcon size={16} />
+                    </button>
+                  )}
                 </li>
               );
             })}

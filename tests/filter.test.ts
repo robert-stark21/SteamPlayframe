@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { openDb } from '../server/db.ts';
 import { ensureDescriptorFacets } from '../server/descriptors.ts';
-import { applyDetails, upsertGame, upsertListed, type NormalizedGame } from '../server/ingest.ts';
+import { applyDetails, saveSteamTags, upsertGame, upsertListed, type NormalizedGame } from '../server/ingest.ts';
 import { learnAndApply } from '../server/tags.ts';
 import { catalog, queryGames } from '../server/queries.ts';
 import { parseQuery, serializeQuery, DEFAULT_QUERY } from '../shared/query.ts';
@@ -211,4 +211,36 @@ test('review sources: all-language counts win; the English search summary only f
   // ...and the search summary never replaces them.
   upsertListed(db, 3405690, 'EA SPORTS FC 26', { positive: 10, negative: 0, source: 'steam_search', fetchedAt: at }, 'x', 'steam_search');
   assert.deepEqual({ ...row(3405690) }, { p: 40000, n: 38000, s: 'steamspy', l: 'mixed' });
+});
+
+test('Steam tags: include any, exclude none, unknown tags never match', () => {
+  const db = openDb(':memory:');
+  saveSteamTags(db, [{ tagid: 4085, name: 'Anime' }, { tagid: 3799, name: 'Visual Novel' }, { tagid: 1667, name: 'Horror' }]);
+  const base = { appType: 'game', thumbnailUrl: null, releaseDate: null, genres: [{ label: 'Adventure', sourceId: null }], categories: [], tags: [], contentDescriptors: [] as { id: number }[], source: 'steamcmd' as const, sourceUrl: 'x', fetchedAt: 't' };
+  const add = (appid: number, name: string, tags: number[] | undefined) => {
+    upsertListed(db, appid, name, null, 'x');
+    applyDetails(db, { ...base, appid, name, storeTagIds: tags });
+  };
+  add(1, 'Anime Novel', [4085, 3799]);
+  add(2, 'Anime Action', [4085]);
+  add(3, 'Plain Novel', [3799]);
+  add(4, 'Horror Novel', [1667, 3799]);
+  add(5, 'No Tags Yet', undefined); // details known, Steam tags not loaded
+  const names = (qs: string) => queryGames(db, parseQuery(qs)).items.map((i) => i.name).sort();
+  assert.deepEqual(names('tag=anime&xtag=visual-novel'), ['Anime Action'], 'anime games that are not visual novels');
+  assert.deepEqual(names('tag=anime,horror'), ['Anime Action', 'Anime Novel', 'Horror Novel']);
+  assert.deepEqual(names('xtag=visual-novel'), ['Anime Action'], 'a game with unknown tags is not assumed to lack the tag');
+  assert.deepEqual(names('xgenre=adventure'), [], 'genre exclusion');
+  assert.deepEqual(queryGames(db, parseQuery('')).items[0].tags.length > 0, true);
+  const card = queryGames(db, parseQuery('q=anime%20novel')).items[0];
+  assert.deepEqual(card.tags, ['Anime', 'Visual Novel'], 'cards show Steam tags in Steam order');
+  const c = catalog(db);
+  assert.equal(c.tagsKnown, 4);
+  assert.deepEqual(c.tags.map((t) => `${t.slug}=${t.total}`), ['visual-novel=3', 'anime=2', 'horror=1']);
+});
+
+test('URL keeps exclusions', () => {
+  const q = parseQuery('tag=anime&xtag=visual-novel&xgenre=casual&xtheme=horror&xfeature=pvp');
+  assert.deepEqual([q.tag, q.xtag, q.xgenre, q.xtheme, q.xfeature], [['anime'], ['visual-novel'], ['casual'], ['horror'], ['pvp']]);
+  assert.equal(serializeQuery(q), 'xgenre=casual&xfeature=pvp&xtheme=horror&tag=anime&xtag=visual-novel');
 });

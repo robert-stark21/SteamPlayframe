@@ -1,6 +1,6 @@
 import type { CatalogResponse } from '../../shared/types.ts';
-import { GROUPS, facetsByGroup, toggle, type FilterState } from '../facets.ts';
-import { FilterGroup } from './FilterGroup.tsx';
+import { GROUPS, facetsByGroup, setExclude, setInclude, toggle, type FilterState } from '../facets.ts';
+import { FilterGroup, type Option } from './FilterGroup.tsx';
 import { ReviewFilter } from './ReviewFilter.tsx';
 
 interface Props {
@@ -27,6 +27,8 @@ export function FilterPanel({ catalog, state, counts, reviewCounts, onChange }: 
       : noReviews > 0
         ? `${noReviews.toLocaleString('en')} games have no reviews yet and are left out when a review filter is set.`
         : undefined;
+  const tags: Option[] = (catalog.tags ?? []).map((t) => ({ id: `tag:${t.slug}`, slug: t.slug, label: t.label, total: t.total }));
+  const noTags = catalog.gameCount - (catalog.tagsKnown ?? 0);
 
   return (
     <div className="fpanel">
@@ -37,20 +39,56 @@ export function FilterPanel({ catalog, state, counts, reviewCounts, onChange }: 
         onChange={(patch) => onChange(patch)}
         note={reviewNote}
       />
-      {GROUPS.map(({ group, key, title, search }) => (
-        <FilterGroup
-          key={group}
-          title={title}
-          searchLabel={search}
-          facets={byGroup[group]}
-          selected={state[key]}
-          counts={counts}
-          onToggle={(slug) => onChange({ [key]: toggle(state[key], slug) })}
-          defaultOpen={group !== 'content_descriptor' || state.cd.length > 0}
-          {...(group === 'content_descriptor'
-            ? { mode: state.cdMode, onModeChange: (cdMode) => onChange({ cdMode }), note: descriptorNote }
-            : {})}
-        />
+      {GROUPS.map(({ group, key, exclude, title, search, noun }) => (
+        <div key={group} className="fpanel__slot">
+          <FilterGroup
+            title={title}
+            noun={noun}
+            searchLabel={search}
+            facets={byGroup[group]}
+            selected={state[key]}
+            counts={counts}
+            onToggle={(slug) => {
+              if (!exclude) return onChange({ [key]: toggle(state[key], slug) });
+              const r = setInclude(state[key], state[exclude], slug);
+              onChange({ [key]: r.include, [exclude]: r.exclude });
+            }}
+            {...(exclude
+              ? {
+                  excluded: state[exclude],
+                  onExclude: (slug: string) => {
+                    const r = setExclude(state[key], state[exclude], slug);
+                    onChange({ [key]: r.include, [exclude]: r.exclude });
+                  },
+                }
+              : {})}
+            defaultOpen={group !== 'content_descriptor' || state.cd.length > 0}
+            {...(group === 'content_descriptor'
+              ? { mode: state.cdMode, onModeChange: (cdMode) => onChange({ cdMode }), note: descriptorNote }
+              : {})}
+          />
+          {group === 'theme' && tags.length > 0 && (
+            <FilterGroup
+              title="Steam tags"
+              noun="tag"
+              searchLabel="Search tags, e.g. Visual Novel"
+              facets={tags}
+              selected={state.tag}
+              counts={null}
+              onToggle={(slug) => {
+                const r = setInclude(state.tag, state.xtag, slug);
+                onChange({ tag: r.include, xtag: r.exclude });
+              }}
+              excluded={state.xtag}
+              onExclude={(slug) => {
+                const r = setExclude(state.tag, state.xtag, slug);
+                onChange({ tag: r.include, xtag: r.exclude });
+              }}
+              defaultOpen={state.tag.length + state.xtag.length > 0}
+              note={noTags > 0 ? `${noTags.toLocaleString('en')} games have no Steam tags loaded yet and are left out while a tag filter is set.` : undefined}
+            />
+          )}
+        </div>
       ))}
     </div>
   );

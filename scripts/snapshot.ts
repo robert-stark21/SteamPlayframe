@@ -23,7 +23,9 @@ const db = new DatabaseSync(out);
 // ~55,000 non-game rows through ~1M tag rows is what made this step crawl.
 db.exec('PRAGMA foreign_keys = OFF;');
 db.exec('BEGIN');
-for (const t of ['game_tag', 'game_store_tag', 'spy_tag', 'tag_dict']) db.exec(`DROP TABLE IF EXISTS ${t}`);
+for (const t of ['game_tag', 'spy_tag', 'tag_dict']) db.exec(`DROP TABLE IF EXISTS ${t}`);
+// Steam tags stay: they drive the tag include and exclude filters.
+db.exec(`DELETE FROM game_store_tag WHERE appid IN (SELECT appid FROM game WHERE app_type != 'game')`);
 db.exec(`DROP TRIGGER IF EXISTS game_review_label`);
 db.exec(`DELETE FROM game_facet WHERE appid IN (SELECT appid FROM game WHERE app_type != 'game')`);
 db.exec(`DELETE FROM game WHERE app_type != 'game'`);

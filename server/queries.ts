@@ -7,7 +7,7 @@ import { FACET_GROUPS } from '../shared/types.ts';
 import { steamStoreUrl } from './ingest.ts';
 
 type Param = string | number;
-type Skip = FacetGroup | 'label' | 'reviews';
+type Skip = FacetGroup | 'label' | 'reviews' | 'tag';
 
 const ORDER_BY: Record<SortKey, string> = {
   rating_desc: 'g.review_rating IS NULL, g.review_rating DESC, g.appid ASC',
@@ -16,6 +16,12 @@ const ORDER_BY: Record<SortKey, string> = {
   name_asc: 'g.name_sort ASC, g.appid ASC',
   name_desc: 'g.name_sort DESC, g.appid DESC',
   release_desc: 'g.release_date IS NULL, g.release_date DESC, g.name_sort ASC',
+};
+
+const EXCLUDE_KEY: Partial<Record<FacetGroup, 'xgenre' | 'xfeature' | 'xtheme'>> = {
+  genre: 'xgenre',
+  feature: 'xfeature',
+  theme: 'xtheme',
 };
 
 const GROUP_KEY: Record<FacetGroup, keyof Pick<GamesQuery, 'genre' | 'feature' | 'theme' | 'cd'>> = {
@@ -53,19 +59,45 @@ export function buildWhere(q: GamesQuery, skip?: Skip): { sql: string; params: P
     params.push(q.reviews);
   }
 
+  // Every set condition is written as "appid IN (one subquery)": SQLite builds that set
+  // once per query instead of probing it for each of ~130,000 games.
+  const marks = (n: number) => Array.from({ length: n }, () => '?').join(', ');
+  const facetSet = (n: number) => `SELECT appid FROM game_facet WHERE facet_id IN (${marks(n)})`;
+
+  // Steam tags: any of the included, none of the excluded. Games whose tags are not
+  // known yet never match a tag filter, in either direction.
+  if (skip !== 'tag' && (q.tag.length || q.xtag.length)) {
+    parts.push('g.has_tags = 1');
+    const tagSet = (n: number) => `SELECT appid FROM game_store_tag WHERE tag_id IN (SELECT tag_id FROM steam_tag WHERE slug IN (${marks(n)}))`;
+    if (q.tag.length) {
+      parts.push(`g.appid IN (${tagSet(q.tag.length)})`);
+      params.push(...q.tag);
+    }
+    if (q.xtag.length) {
+      parts.push(`g.appid NOT IN (${tagSet(q.xtag.length)})`);
+      params.push(...q.xtag);
+    }
+  }
+
+  // Excluded genres, features, themes: none of them. (They apply even when counting the
+  // group's own options, so excluded games never inflate a count.)
+  for (const group of ['genre', 'feature', 'theme'] as const) {
+    const ex = q[EXCLUDE_KEY[group]!];
+    if (!ex.length) continue;
+    parts.push(`g.appid NOT IN (${facetSet(ex.length)})`);
+    params.push(...ex.map((s) => `${group}:${s}`));
+  }
+
   for (const group of FACET_GROUPS) {
     if (group === skip) continue;
     const slugs = q[GROUP_KEY[group]];
     if (!slugs.length) continue;
-    const ids = slugs.map((s) => `${group}:${s}`);
-    const marks = ids.map(() => '?').join(', ');
-    const exists = `EXISTS (SELECT 1 FROM game_facet f WHERE f.appid = g.appid AND f.facet_id IN (${marks}))`;
     if (group === 'content_descriptor') {
-      parts.push(`g.descriptors_known = 1 AND ${q.cdMode === 'exclude' ? 'NOT ' : ''}${exists}`);
+      parts.push(`g.descriptors_known = 1 AND g.appid ${q.cdMode === 'exclude' ? 'NOT ' : ''}IN (${facetSet(slugs.length)})`);
     } else {
-      parts.push(exists);
+      parts.push(`g.appid IN (${facetSet(slugs.length)})`);
     }
-    params.push(...ids);
+    params.push(...slugs.map((s) => `${group}:${s}`));
   }
   return { sql: parts.join(' AND '), params };
 }
@@ -74,7 +106,18 @@ function cardTags(db: DB, appids: number[]): Map<number, string[]> {
   const out = new Map<number, string[]>();
   if (!appids.length) return out;
   const marks = appids.map(() => '?').join(', ');
-  // Themes first (the mood), then genres; three at most.
+  // Steam's own top tags first, in Steam's order; themes and genres where tags are unknown.
+  const steam = db
+    .prepare(
+      `SELECT k.appid, t.name AS label FROM game_store_tag k JOIN steam_tag t ON t.tag_id = k.tag_id
+       WHERE k.appid IN (${marks}) ORDER BY k.appid, k.rank`,
+    )
+    .all(...appids) as { appid: number; label: string }[];
+  for (const r of steam) {
+    const list = out.get(r.appid) ?? [];
+    if (list.length < 3) list.push(r.label);
+    out.set(r.appid, list);
+  }
   const rows = db
     .prepare(
       `SELECT gf.appid, f.label FROM game_facet gf JOIN facet f ON f.id = gf.facet_id
@@ -83,6 +126,7 @@ function cardTags(db: DB, appids: number[]): Map<number, string[]> {
     )
     .all(...appids) as { appid: number; label: string }[];
   for (const r of rows) {
+    if (steam.some((s) => s.appid === r.appid)) continue;
     const list = out.get(r.appid) ?? [];
     if (list.length < 3) list.push(r.label);
     out.set(r.appid, list);
@@ -226,6 +270,14 @@ export function catalog(db: DB): CatalogResponse {
   if (stats.n > 0 && (stats.dated ?? 0) / stats.n >= 0.9) sorts.push('release_desc');
   sorts.push('name_asc', 'name_desc');
 
+  const tags = db
+    .prepare(
+      `SELECT t.slug, t.name AS label, (SELECT COUNT(*) FROM game_store_tag k WHERE k.tag_id = t.tag_id) AS total
+       FROM steam_tag t ORDER BY total DESC, t.name`,
+    )
+    .all() as { slug: string; label: string; total: number }[];
+  const tagsKnown = (db.prepare(`SELECT COUNT(*) AS n FROM game WHERE app_type = 'game' AND has_tags = 1`).get() as { n: number }).n;
+
   const heartbeat = getMeta(db, 'import_heartbeat');
   const mode = getMeta(db, 'catalog_mode');
   return {
@@ -239,6 +291,8 @@ export function catalog(db: DB): CatalogResponse {
     reviewsKnown: reviewed,
     reviewsSource: reviewed === 0 ? null : stats.sources > 1 ? 'mixed' : (stats.source as 'steam' | 'steamspy'),
     reviewsUpdated: getMeta(db, 'reviews_updated'),
+    tags: tags.filter((t) => t.total > 0),
+    tagsKnown,
     facets: facets.map<Facet>((f) => ({
       id: f.id,
       slug: f.slug,

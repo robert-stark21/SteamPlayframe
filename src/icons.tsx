@@ -58,3 +58,7 @@ export const GridIcon = ({ size }: P) => (
 export const ListIcon = ({ size }: P) => (
   <svg aria-hidden="true" {...base(size)}><rect x="4" y="4" width="16" height="7" rx="1.5" /><rect x="4" y="13" width="16" height="7" rx="1.5" /></svg>
 );
+/** A circle with a bar: leave this out. */
+export const ExcludeIcon = ({ size }: P) => (
+  <svg aria-hidden="true" {...base(size)}><circle cx="12" cy="12" r="8.5" /><path d="M8 12h8" /></svg>
+);

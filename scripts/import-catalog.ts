@@ -15,10 +15,10 @@
 import { config } from '../server/config.ts';
 import { getMeta, openDb, setMeta, transaction } from '../server/db.ts';
 import { ensureDescriptorFacets } from '../server/descriptors.ts';
-import { DETAILS_VERSION, applyDetails, markDetailsMissing, steamStoreUrl, upsertListed } from '../server/ingest.ts';
+import { DETAILS_VERSION, applyDetails, markDetailsMissing, saveSteamTags, steamStoreUrl, upsertListed } from '../server/ingest.ts';
 import { learnAndApply } from '../server/tags.ts';
 import { appInfo } from '../server/providers/steamcmd.ts';
-import { searchGamesPage, storeDnsServers } from '../server/providers/steamstore.ts';
+import { searchGamesPage, steamTagList, storeDnsServers } from '../server/providers/steamstore.ts';
 import { STEAMSPY_LIST_INTERVAL_MS, listPage, tagAppids } from '../server/providers/steamspy.ts';
 import { sleep } from '../server/providers/http.ts';
 import { THEME_SOURCE_TAGS } from '../server/taxonomy.ts';
@@ -243,6 +243,12 @@ function checkpointLoop() {
 async function main() {
   log(`Database ${config.databasePath}, ${CONCURRENCY} detail workers`);
   const stopCheckpoints = checkpointLoop();
+  try {
+    const tags = await steamTagList();
+    if (tags.length) log(`Steam tag list: ${transaction(db, () => saveSteamTags(db, tags))} tags`);
+  } catch (err) {
+    log(`Steam tag list unavailable (${(err as Error).message}); keeping the stored one`);
+  }
   ensureDescriptorFacets(db);
   if (args.includes('--themes-only')) {
     await themesPass(args.includes('--refetch-tags') || count('SELECT COUNT(*) AS n FROM spy_tag') === 0);

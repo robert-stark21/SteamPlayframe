@@ -68,6 +68,13 @@ export interface GamesQuery {
   cdMode: DescriptorMode;
   /** Steam review label slugs (OR), e.g. ['very-positive']. */
   label: string[];
+  /** Steam tags to include (any of them) and to exclude (none of them), by slug. */
+  tag: string[];
+  xtag: string[];
+  /** Genres, features and themes to exclude (none of them). */
+  xgenre: string[];
+  xfeature: string[];
+  xtheme: string[];
   /** Minimum number of reviews, or null for any. */
   reviews: number | null;
   sort: SortKey;
@@ -105,4 +112,8 @@ export interface CatalogResponse {
   reviewsSource: 'steam' | 'steamspy' | 'mixed' | null;
   reviewsUpdated: string | null;
   facets: Facet[];
+  /** Steam's tag list with how many indexed games carry each tag, most used first. */
+  tags: { slug: string; label: string; total: number }[];
+  /** Games whose Steam tags are known (only these can match a tag filter). */
+  tagsKnown: number;
 }

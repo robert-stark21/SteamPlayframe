@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CatalogResponse, GamesQuery } from '../../shared/types.ts';
 import { activeFilterCount } from '../../shared/query.ts';
-import type { FilterState } from '../facets.ts';
+import { EMPTY_FILTERS, pickFilters, type FilterState } from '../facets.ts';
 import { CloseIcon } from '../icons.tsx';
 import { useDraftCount } from '../useGames.ts';
 import { FilterPanel } from './FilterPanel.tsx';
@@ -14,8 +14,8 @@ interface Props {
   onClose: () => void;
 }
 
-const pick = (q: GamesQuery): FilterState => ({ genre: q.genre, feature: q.feature, theme: q.theme, cd: q.cd, cdMode: q.cdMode, label: q.label, reviews: q.reviews });
-const EMPTY: FilterState = { genre: [], feature: [], theme: [], cd: [], cdMode: 'include', label: [], reviews: null };
+const pick = pickFilters;
+const EMPTY: FilterState = EMPTY_FILTERS;
 
 /**
  * Mobile filters as a bottom sheet. Choices here are a draft: only

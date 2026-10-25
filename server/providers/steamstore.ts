@@ -72,6 +72,22 @@ export async function storeDetails(appid: number, country = 'US', language = 'en
   };
 }
 
+/** Steam's full tag list: [{ tagid, name }], about 430 tags. */
+export async function steamTagList(language = 'english'): Promise<{ tagid: number; name: string }[]> {
+  let body: { tagid: number; name: string }[] = [];
+  // This route is reset now and then on some networks; a few spaced retries get through.
+  for (let i = 0; ; i++) {
+    try {
+      body = await getJson<{ tagid: number; name: string }[]>(`https://store.steampowered.com/tagdata/populartags/${language}`);
+      break;
+    } catch (err) {
+      if (i >= 4) throw err;
+      await new Promise((r) => setTimeout(r, 4000 * (i + 1)));
+    }
+  }
+  return (Array.isArray(body) ? body : []).filter((t) => Number.isInteger(t.tagid) && typeof t.name === 'string' && t.name.trim());
+}
+
 export interface SearchRow {
   appid: number;
   name: string;

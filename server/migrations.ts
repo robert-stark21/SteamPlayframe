@@ -135,4 +135,25 @@ export const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       DELETE FROM game_tag WHERE appid IN (SELECT appid FROM game WHERE app_type != 'game');
     `,
   },
+  {
+    id: 6,
+    name: 'steam_tag_names',
+    sql: `
+      -- Steam's own tag list (store tagdata), so any tag can be filtered in or out by name.
+      CREATE TABLE steam_tag (
+        tag_id INTEGER PRIMARY KEY,
+        name   TEXT NOT NULL,
+        slug   TEXT NOT NULL UNIQUE
+      );
+      DELETE FROM game_store_tag WHERE appid IN (SELECT appid FROM game WHERE app_type != 'game');
+    `,
+  },
+  {
+    id: 7,
+    name: 'has_tags_flag',
+    sql: `
+      ALTER TABLE game ADD COLUMN has_tags INTEGER NOT NULL DEFAULT 0;  -- Steam tags loaded (possibly none)
+      UPDATE game SET has_tags = 1 WHERE appid IN (SELECT DISTINCT appid FROM game_store_tag);
+    `,
+  },
 ];

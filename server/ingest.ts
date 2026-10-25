@@ -103,18 +103,35 @@ export function applyDetails(db: DB, g: NormalizedGame): void {
     g.developer ?? null, g.publisher ?? null, DETAILS_VERSION, g.appid,
   );
   db.prepare(`DELETE FROM game_facet WHERE appid = ? AND facet_id NOT LIKE 'theme:%'`).run(g.appid);
-  // Only games are listed, so only games carry filter links (keeps every count an index scan).
+  // Only games are listed, so only games carry filter links and tags (keeps every count an index scan).
   if (g.appType !== 'game') {
     db.prepare('DELETE FROM game_facet WHERE appid = ?').run(g.appid);
+    db.prepare('DELETE FROM game_store_tag WHERE appid = ?').run(g.appid);
     return;
   }
   if (g.storeTagIds) {
     db.prepare('DELETE FROM game_store_tag WHERE appid = ?').run(g.appid);
     const st = db.prepare('INSERT OR IGNORE INTO game_store_tag (appid, tag_id, rank) VALUES (?, ?, ?)');
     g.storeTagIds.forEach((id, i) => st.run(g.appid, id, i));
+    db.prepare('UPDATE game SET has_tags = 1 WHERE appid = ?').run(g.appid);
   }
   const link = db.prepare('INSERT OR IGNORE INTO game_facet (appid, facet_id) VALUES (?, ?)');
   for (const id of facetIdsFor(db, { ...g, tags: [] })) link.run(g.appid, id);
+}
+
+/** Replace Steam's tag dictionary (id, name, URL slug). */
+export function saveSteamTags(db: DB, tags: { tagid: number; name: string }[]): number {
+  const ins = db.prepare('INSERT INTO steam_tag (tag_id, name, slug) VALUES (?, ?, ?) ON CONFLICT(tag_id) DO UPDATE SET name = excluded.name, slug = excluded.slug');
+  const seen = new Set<string>();
+  let n = 0;
+  for (const t of tags) {
+    let slug = slugify(t.name) || `tag-${t.tagid}`;
+    if (seen.has(slug)) slug = `${slug}-${t.tagid}`;
+    seen.add(slug);
+    ins.run(t.tagid, t.name.trim(), slug);
+    n++;
+  }
+  return n;
 }
 
 /** Mark an app whose details could not be found, so it is not retried every run. */

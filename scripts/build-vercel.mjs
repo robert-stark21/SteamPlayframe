@@ -5,6 +5,9 @@
 import { execSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { build } from 'esbuild';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { pipeline } from 'node:stream/promises';
+import { createGzip } from 'node:zlib';
 
 const run = (cmd) => execSync(cmd, { stdio: 'inherit' });
 const out = '.vercel/output';
@@ -33,7 +36,12 @@ await build({
   external: ['node:*'],
   logLevel: 'warning',
 });
-cpSync('data/snapshot.db', `${fn}/playframe.db`);
+// Vercel refuses single files over 100 MB: ship the snapshot gzip-compressed (about 3.5x smaller).
+await pipeline(createReadStream('data/snapshot.db'), createGzip({ level: 6 }), createWriteStream(`${fn}/playframe.db.gz`));
+if (statSync(`${fn}/playframe.db.gz`).size > 95 * 1048576) {
+  console.error('[build:vercel] The compressed snapshot is over 95 MB; Vercel rejects files over 100 MB. Split it before deploying.');
+  process.exit(1);
+}
 
 writeFileSync(
   `${fn}/.vc-config.json`,
@@ -58,5 +66,5 @@ writeFileSync(
 );
 
 const mb = (f) => (statSync(f).size / 1048576).toFixed(1);
-console.log(`[build:vercel] ${out} ready: function ${mb(`${fn}/index.mjs`)} MB code + ${mb(`${fn}/playframe.db`)} MB data`);
+console.log(`[build:vercel] ${out} ready: function ${mb(`${fn}/index.mjs`)} MB code + ${mb(`${fn}/playframe.db.gz`)} MB data (gzip of ${mb('data/snapshot.db')} MB)`);
 console.log('[build:vercel] Deploy with: npx vercel deploy --prebuilt --prod');

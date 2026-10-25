@@ -15,6 +15,11 @@ export const DEFAULT_QUERY: GamesQuery = {
   cd: [],
   cdMode: 'include',
   label: [],
+  tag: [],
+  xtag: [],
+  xgenre: [],
+  xfeature: [],
+  xtheme: [],
   reviews: null,
   sort: 'rating_desc',
   page: 1,
@@ -47,6 +52,11 @@ export function parseQuery(search: string | URLSearchParams): GamesQuery {
     cd: list(p, 'cd'),
     cdMode: (modeRaw === 'exclude' ? 'exclude' : 'include') as DescriptorMode,
     label: list(p, 'label').filter((s) => LABEL_BY_SLUG.has(s)),
+    tag: list(p, 'tag'),
+    xtag: list(p, 'xtag'),
+    xgenre: list(p, 'xgenre'),
+    xfeature: list(p, 'xfeature'),
+    xtheme: list(p, 'xtheme'),
     reviews: (REVIEW_COUNT_STEPS as readonly number[]).includes(reviewsRaw) ? reviewsRaw : null,
     sort: sortRaw && SORTS.includes(sortRaw) ? sortRaw : DEFAULT_QUERY.sort,
     page: Number.isFinite(pageRaw) && pageRaw >= 1 && pageRaw <= 10000 ? pageRaw : 1,
@@ -59,7 +69,7 @@ export function serializeQuery(q: GamesQuery): string {
   const parts: string[] = [];
   const add = (k: string, v: string) => parts.push(`${k}=${v}`);
   if (q.q.trim()) add('q', encodeURIComponent(q.q.trim()));
-  for (const k of ['genre', 'feature', 'theme', 'cd'] as const) {
+  for (const k of ['genre', 'xgenre', 'feature', 'xfeature', 'theme', 'xtheme', 'tag', 'xtag', 'cd'] as const) {
     if (q[k].length) add(k, q[k].map(encodeURIComponent).join(','));
   }
   if (q.cdMode === 'exclude') add('cdx', 'exclude');
@@ -72,5 +82,6 @@ export function serializeQuery(q: GamesQuery): string {
 }
 
 export function activeFilterCount(q: GamesQuery): number {
-  return q.genre.length + q.feature.length + q.theme.length + q.cd.length + q.label.length + (q.reviews !== null ? 1 : 0);
+  return q.genre.length + q.feature.length + q.theme.length + q.cd.length + q.label.length + (q.reviews !== null ? 1 : 0)
+    + q.tag.length + q.xtag.length + q.xgenre.length + q.xfeature.length + q.xtheme.length;
 }

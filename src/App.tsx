@@ -244,6 +244,7 @@ export function App() {
           <ActiveFilters
             query={query}
             facets={catalog?.facets ?? []}
+            tags={catalog?.tags}
             onRemove={(key, slug) => update({ [key]: toggle(query[key], slug) })}
             onClearSearch={() => { typing.current = false; setText(''); update({ q: '' }); }}
             onRemoveLabel={(slug) => update({ label: query.label.filter((s) => s !== slug) })}
