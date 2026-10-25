@@ -1,0 +1,45 @@
+:root {
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px; --space-4xl: 144px;
+  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.2rem; --text-xl: 1.44rem; --text-2xl: 1.728rem; --text-3xl: 2.074rem;
+  --text-display-s: 1.44rem; --text-display: 2.074rem; --text-section: 1.44rem; --text-title: 1rem; --text-lead: 1rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
+  --color-error: oklch(72% 0.15 27); --color-success: oklch(76% 0.12 150);
+  --container: 1600px; --gutter: 24px; --gap-columns: 16px; --section-gap-s: 120px; --section-gap: 144px; --section-gap-l: 176px;
+  --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
+
+  /* The brief's palette, in OKLCH. Charcoal page, black screens, graphite cards, an off-white bezel, one orange signal. */
+  --color-paper: oklch(17.7% 0.006 264);        /* #101113 page */
+  --color-paper-2: oklch(23.4% 0.008 258);      /* #1C1E21 graphite card */
+  --color-paper-3: oklch(29.6% 0.009 256);      /* raised graphite: hover, skeleton */
+  --color-surface: oklch(13.9% 0.005 246);      /* #08090A black panel */
+  --color-frame: oklch(95.8% 0.006 95);         /* #F2F1ED bezel */
+  --color-frame-ink: oklch(17.7% 0.006 264);
+  --color-ink: oklch(96.9% 0.005 106);          /* #F5F5F2 */
+  --color-ink-2: oklch(86% 0.008 260);
+  --color-muted: oklch(72.5% 0.011 267);        /* #A3A6AD */
+  --color-rule: oklch(31% 0.009 258);
+  --color-edge: oklch(52% 0.011 262);           /* field and control edges, 3:1 on black */
+  --color-accent: oklch(70.2% 0.197 42);        /* #FF6A24 */
+  --color-accent-ink: oklch(17% 0.03 42);
+  --color-focus: oklch(73% 0.19 42);
+  /* Review tones, after Steam's own: blue for positive, sand for mixed, red for negative (kept off the orange accent's hue). */
+  --color-positive: oklch(77% 0.114 236);
+  --color-mixed: oklch(76% 0.066 81);
+  --color-negative: oklch(68% 0.17 22);
+
+  --font-display: "Unbounded Variable", "Unbounded", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Hanken Grotesk Variable", "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-outlier: var(--font-body);
+
+  --radius-frame: 40px; --radius-panel: 30px; --radius-card: 20px; --radius-media: 12px; --radius-control: 12px; --radius-pill: 999px;
+  --rule-hair: 1px; --shadow-card: none; --shadow-frame: 0 1px 2px oklch(10% 0.01 264 / 0.4);
+  --frame-gap: var(--space-sm);
+  --sidebar: 320px;
+  --control-h: 40px;
+  --tracking-display: -0.02em;
+}
+
+@media (max-width: 40rem) {
+  :root { --radius-frame: 28px; --radius-panel: 22px; --radius-card: 18px; --frame-gap: var(--space-xs); --gutter: 12px; }
+}

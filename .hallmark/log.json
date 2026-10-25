@@ -1,0 +1,26 @@
+[
+ {
+  "scope": "app",
+  "shape": "app screen",
+  "theme": "custom",
+  "axes": "dark/display-heavy/warm",
+  "hero": "none (app)",
+  "nav": "bezel top row: wordmark tab + search masthead",
+  "footer": "three-column source and disclaimer line",
+  "imagery": "Steam header artwork with monogram fallback",
+  "photos": [],
+  "entry": "search + filters",
+  "fingerprint": "bezel/sidebar-filters/card-grid",
+  "sections": [
+   "masthead",
+   "filters",
+   "results",
+   "footer"
+  ],
+  "signature": "off-white bezel framing black filter and result screens",
+  "waived": [],
+  "prompt": "PLAYFRAME Steam game explorer",
+  "date": "2026-10-25",
+  "mode": "build"
+ }
+]
