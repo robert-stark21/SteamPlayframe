@@ -103,6 +103,11 @@ export function applyDetails(db: DB, g: NormalizedGame): void {
     g.developer ?? null, g.publisher ?? null, DETAILS_VERSION, g.appid,
   );
   db.prepare(`DELETE FROM game_facet WHERE appid = ? AND facet_id NOT LIKE 'theme:%'`).run(g.appid);
+  // Only games are listed, so only games carry filter links (keeps every count an index scan).
+  if (g.appType !== 'game') {
+    db.prepare('DELETE FROM game_facet WHERE appid = ?').run(g.appid);
+    return;
+  }
   if (g.storeTagIds) {
     db.prepare('DELETE FROM game_store_tag WHERE appid = ?').run(g.appid);
     const st = db.prepare('INSERT OR IGNORE INTO game_store_tag (appid, tag_id, rank) VALUES (?, ?, ?)');
@@ -192,7 +197,7 @@ export function upsertGame(db: DB, g: NormalizedGame): void {
   );
   db.prepare('DELETE FROM game_facet WHERE appid = ?').run(g.appid);
   const link = db.prepare('INSERT OR IGNORE INTO game_facet (appid, facet_id) VALUES (?, ?)');
-  for (const id of facetIdsFor(db, g)) link.run(g.appid, id);
+  if (g.appType === 'game') for (const id of facetIdsFor(db, g)) link.run(g.appid, id);
 
   db.prepare('DELETE FROM game_tag WHERE appid = ?').run(g.appid);
   const tag = db.prepare('INSERT OR IGNORE INTO game_tag (appid, tag_id, tag_name, rank) VALUES (?, ?, ?, ?)');

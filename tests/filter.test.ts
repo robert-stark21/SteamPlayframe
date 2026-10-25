@@ -88,6 +88,8 @@ test('search is trimmed, case-insensitive and treats % and _ literally', () => {
   assert.deepEqual(names(db, 'q=ORANGE_'), ['100% Orange_Juice']);
   assert.deepEqual(names(db, 'q=%25'), ['100% Orange_Juice']);
   assert.deepEqual(names(db, 'q=a&genre=rpg'), ['Beta Farm', 'Gamma Void']);
+  upsertGame(db, { appid: 9, name: 'EA SPORTS FC™ 26', appType: 'game', thumbnailUrl: null, releaseDate: null, genres: [], categories: [], tags: [], contentDescriptors: null, source: 'demo_fixture', sourceUrl: 'x', fetchedAt: 't' });
+  assert.deepEqual(names(db, 'q=fc%2026'), ['EA SPORTS FC™ 26'], 'the ™ does not block the match');
 });
 
 test('filters apply before pagination; totals match', () => {

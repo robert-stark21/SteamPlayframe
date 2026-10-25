@@ -6,3 +6,8 @@ data/sync-checkpoint.json
 .env
 .hallmark/shots
 data/*.log
+.vercel
+
+.vercel
+.env*
+!.env.example

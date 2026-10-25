@@ -127,4 +127,12 @@ export const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       ) WITHOUT ROWID;
     `,
   },
+  {
+    id: 5,
+    name: 'facets_only_on_games',
+    sql: `
+      DELETE FROM game_facet WHERE appid IN (SELECT appid FROM game WHERE app_type != 'game');
+      DELETE FROM game_tag WHERE appid IN (SELECT appid FROM game WHERE app_type != 'game');
+    `,
+  },
 ];

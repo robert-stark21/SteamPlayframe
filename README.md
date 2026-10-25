@@ -64,7 +64,19 @@ SteamDB is a reference only: it offers no public API and does not allow scraping
 
 Filter logic: OR inside a group, AND across groups, search (case-insensitive, trimmed) AND everything. Filtering, counting and sorting run in SQL over the whole catalog before a page of 24 is taken.
 
-## Deploy
+## Deploy to Vercel (snapshot)
+
+Vercel runs no long-lived server and has a read-only disk, so the catalog ships as a read-only SQLite snapshot inside one API function:
+
+```bash
+npx vercel login            # once
+npx vercel link --project playframe   # once
+npm run deploy:vercel       # snapshot + build + vercel deploy --prebuilt --prod
+```
+
+`npm run snapshot` writes `data/snapshot.db` (games only, the import's working tables dropped); `npm run build:vercel` assembles `.vercel/output` (static site + `functions/api.func` with the snapshot). Store descriptions and screenshots are fetched live from Steam on Vercel and kept in memory, not written. To refresh the data, let `npm run import` run locally, then deploy again. `vercel.json` turns off Git auto-deploys, which would otherwise publish a build without data.
+
+## Deploy elsewhere
 
 One Node process plus one SQLite file. Point `DATABASE_PATH` at a persistent disk and run the sync on a schedule (cron). Serverless or ephemeral disks need a durable database instead: keep `server/queries.ts` and swap `server/db.ts`.
 

@@ -17,6 +17,11 @@ export function openDb(path: string): DB {
   return db;
 }
 
+/** A finished snapshot (Vercel): no migrations, no writes, no WAL. */
+export function openDbReadOnly(path: string): DB {
+  return new DatabaseSync(path, { readOnly: true });
+}
+
 export function migrate(db: DB): number {
   db.exec('CREATE TABLE IF NOT EXISTS schema_migrations (id INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL);');
   let applied = 0;

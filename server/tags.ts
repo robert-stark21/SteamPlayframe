@@ -55,7 +55,8 @@ export function learnAndApply(db: DB, names: string[]): Learned[] {
     db.exec('DELETE FROM game_tag');
     db.exec(
       `INSERT OR IGNORE INTO game_tag (appid, tag_id, tag_name, rank)
-       SELECT st.appid, st.tag_id, d.name, st.rank FROM game_store_tag st JOIN tag_dict d ON d.tag_id = st.tag_id`,
+       SELECT st.appid, st.tag_id, d.name, st.rank FROM game_store_tag st JOIN tag_dict d ON d.tag_id = st.tag_id
+       JOIN game g ON g.appid = st.appid AND g.app_type = 'game'`,
     );
   });
   rebuildThemes(db);

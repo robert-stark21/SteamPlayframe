@@ -38,9 +38,10 @@ export function buildWhere(q: GamesQuery, skip?: Skip): { sql: string; params: P
   const parts: string[] = [`g.app_type = 'game'`];
   const params: Param[] = [];
 
-  const term = q.q.trim().toLowerCase();
+  // Trademark signs never block a match: "fc 26" finds "EA SPORTS FC™ 26".
+  const term = q.q.replace(/[™®©]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
   if (term) {
-    parts.push(`lower(g.name) LIKE ? ESCAPE '\\'`);
+    parts.push(`replace(replace(replace(lower(g.name), '™', ''), '®', ''), '©', '') LIKE ? ESCAPE '\\'`);
     params.push(`%${escapeLike(term)}%`);
   }
   if (q.label.length && skip !== 'label') {
@@ -163,6 +164,14 @@ export function facetCounts(db: DB, q: GamesQuery): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const group of FACET_GROUPS) {
     const w = buildWhere(q, group);
+    // Nothing else filters: plain totals from the index (descriptors only exist where known).
+    if (w.params.length === 0) {
+      const rows = db
+        .prepare('SELECT facet_id AS id, COUNT(*) AS n FROM game_facet WHERE facet_id >= ? AND facet_id < ? GROUP BY facet_id')
+        .all(`${group}:`, `${group};`) as { id: string; n: number }[];
+      for (const r of rows) counts[r.id] = r.n;
+      continue;
+    }
     const extra = group === 'content_descriptor' ? ' AND g.descriptors_known = 1' : '';
     const rows = db
       .prepare(
@@ -191,13 +200,12 @@ export function reviewCounts(db: DB, q: GamesQuery): Record<string, number> {
 }
 
 export function catalog(db: DB): CatalogResponse {
+  // Only games carry filter links, so a facet's total is a count over its index.
   const facets = db
     .prepare(
-      `SELECT f.id, f.slug, f.label, f.grp, f.source_id, COUNT(g.appid) AS total
-       FROM facet f
-       LEFT JOIN game_facet gf ON gf.facet_id = f.id
-       LEFT JOIN game g ON g.appid = gf.appid AND g.app_type = 'game'
-       GROUP BY f.id ORDER BY f.grp, total DESC, f.label`,
+      `SELECT f.id, f.slug, f.label, f.grp, f.source_id,
+              (SELECT COUNT(*) FROM game_facet gf WHERE gf.facet_id = f.id) AS total
+       FROM facet f ORDER BY f.grp, total DESC, f.label`,
     )
     .all() as { id: string; slug: string; label: string; grp: FacetGroup; source_id: string | null; total: number }[];
 

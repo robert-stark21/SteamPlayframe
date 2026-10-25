@@ -18,7 +18,10 @@
     "sync": "tsx scripts/sync-steam.ts",
     "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "import": "tsx scripts/import-catalog.ts"
+    "import": "tsx scripts/import-catalog.ts",
+    "snapshot": "tsx scripts/snapshot.ts",
+    "build:vercel": "node scripts/build-vercel.mjs",
+    "deploy:vercel": "node scripts/build-vercel.mjs && vercel deploy --prebuilt --prod"
   },
   "dependencies": {
     "@fontsource-variable/hanken-grotesk": "^5.2.0",
@@ -33,6 +36,8 @@
     "@vitejs/plugin-react": "^5.0.0",
     "tsx": "^4.20.0",
     "typescript": "~5.9.0",
-    "vite": "^7.1.0"
+    "vite": "^7.1.0",
+    "esbuild": "^0.28.2",
+    "vercel": "^65.2.0"
   }
 }
