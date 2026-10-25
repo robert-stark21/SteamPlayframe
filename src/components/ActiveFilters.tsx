@@ -24,7 +24,7 @@ export function ActiveFilters({ query, facets, tags = [], onRemove, onClearSearc
   if (query.reviews !== null) chips.push({ id: 'reviews', text: `Review count: ${reviewsLabel(query.reviews)}`, onRemove: onClearReviewCount });
   for (const { group, key, exclude, chip } of GROUPS) {
     for (const slug of query[key]) {
-      const prefix = key === 'cd' ? (query.cdMode === 'exclude' ? 'Exclude' : 'Descriptor') : chip;
+      const prefix = key === 'cd' ? (query.cdMode === 'exclude' ? 'Exclude' : 'Descriptor') : `Has ${chip.toLowerCase()}`;
       chips.push({ id: `${key}:${slug}`, text: `${prefix}: ${label(group, slug)}`, onRemove: () => onRemove(key, slug) });
     }
     for (const slug of exclude ? query[exclude] : []) {
@@ -32,7 +32,7 @@ export function ActiveFilters({ query, facets, tags = [], onRemove, onClearSearc
     }
   }
   const tagLabel = (slug: string) => tags.find((t) => t.slug === slug)?.label ?? slug;
-  for (const slug of query.tag) chips.push({ id: `tag:${slug}`, text: `Tag: ${tagLabel(slug)}`, onRemove: () => onRemove('tag', slug) });
+  for (const slug of query.tag) chips.push({ id: `tag:${slug}`, text: `Has tag: ${tagLabel(slug)}`, onRemove: () => onRemove('tag', slug) });
   for (const slug of query.xtag) chips.push({ id: `xtag:${slug}`, text: `Not tag: ${tagLabel(slug)}`, onRemove: () => onRemove('xtag', slug) });
   if (!chips.length) return null;
 

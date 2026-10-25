@@ -57,8 +57,10 @@ test('no filters lists only games, sorted by name', () => {
   assert.ok(!r.items.some((i) => i.appid === 5), 'demo apps are excluded');
 });
 
-test('OR inside a group', () => {
-  assert.deepEqual(names(fixture(), 'genre=simulation,adventure'), ['Beta Farm', 'Delta Dread']);
+test('every ticked option inside a group must match', () => {
+  assert.deepEqual(names(fixture(), 'genre=simulation,rpg'), ['Beta Farm']);
+  assert.deepEqual(names(fixture(), 'genre=action,rpg'), ['Gamma Void']);
+  assert.deepEqual(names(fixture(), 'genre=simulation,adventure'), [], 'no game has both');
 });
 
 test('AND across groups', () => {
@@ -94,12 +96,12 @@ test('search is trimmed, case-insensitive and treats % and _ literally', () => {
 
 test('filters apply before pagination; totals match', () => {
   const db = fixture();
-  const p1 = queryGames(db, parseQuery('genre=action,rpg,simulation,adventure'), 2);
-  assert.equal(p1.total, 4);
+  const p1 = queryGames(db, parseQuery('feature=single-player'), 2);
+  assert.equal(p1.total, 3);
   assert.equal(p1.pageCount, 2);
-  const p2 = queryGames(db, parseQuery('genre=action,rpg,simulation,adventure&page=2'), 2);
+  const p2 = queryGames(db, parseQuery('feature=single-player&page=2'), 2);
   const all = [...p1.items, ...p2.items].map((i) => i.appid);
-  assert.equal(new Set(all).size, 4);
+  assert.equal(new Set(all).size, 3);
   const past = queryGames(db, parseQuery('genre=action&page=99'), 2);
   assert.equal(past.page, past.pageCount, 'a page past the end clamps to the last page');
 });
@@ -109,10 +111,11 @@ test('Z to A sort', () => {
   assert.deepEqual(r.items.map((i) => i.appid), [3, 4, 2, 1, 6]);
 });
 
-test('contextual counts leave out their own group', () => {
+test('counts show what adding each option would leave', () => {
   const db = fixture();
   const r = queryGames(db, parseQuery('genre=rpg'));
-  assert.equal(r.counts['genre:action'], 2, 'genre counts ignore the genre selection');
+  assert.equal(r.counts['genre:action'], 1, 'RPG and Action: only Gamma Void');
+  assert.equal(r.counts['genre:rpg'], 2, 'the selected option counts the current results');
   assert.equal(r.counts['feature:online-co-op'], 2);
   assert.equal(r.counts['feature:single-player'], 1);
 });
@@ -213,7 +216,7 @@ test('review sources: all-language counts win; the English search summary only f
   assert.deepEqual({ ...row(3405690) }, { p: 40000, n: 38000, s: 'steamspy', l: 'mixed' });
 });
 
-test('Steam tags: include any, exclude none, unknown tags never match', () => {
+test('Steam tags: include all, exclude none, unknown tags never match', () => {
   const db = openDb(':memory:');
   saveSteamTags(db, [{ tagid: 4085, name: 'Anime' }, { tagid: 3799, name: 'Visual Novel' }, { tagid: 1667, name: 'Horror' }]);
   const base = { appType: 'game', thumbnailUrl: null, releaseDate: null, genres: [{ label: 'Adventure', sourceId: null }], categories: [], tags: [], contentDescriptors: [] as { id: number }[], source: 'steamcmd' as const, sourceUrl: 'x', fetchedAt: 't' };
@@ -228,7 +231,9 @@ test('Steam tags: include any, exclude none, unknown tags never match', () => {
   add(5, 'No Tags Yet', undefined); // details known, Steam tags not loaded
   const names = (qs: string) => queryGames(db, parseQuery(qs)).items.map((i) => i.name).sort();
   assert.deepEqual(names('tag=anime&xtag=visual-novel'), ['Anime Action'], 'anime games that are not visual novels');
-  assert.deepEqual(names('tag=anime,horror'), ['Anime Action', 'Anime Novel', 'Horror Novel']);
+  assert.deepEqual(names('tag=anime,visual-novel'), ['Anime Novel'], 'every ticked tag must match');
+  assert.deepEqual(names('tag=anime,horror'), [], 'no game has both');
+  assert.deepEqual(names('tag=visual-novel&xtag=anime'), ['Horror Novel', 'Plain Novel']);
   assert.deepEqual(names('xtag=visual-novel'), ['Anime Action'], 'a game with unknown tags is not assumed to lack the tag');
   assert.deepEqual(names('xgenre=adventure'), [], 'genre exclusion');
   assert.deepEqual(queryGames(db, parseQuery('')).items[0].tags.length > 0, true);

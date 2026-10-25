@@ -64,14 +64,14 @@ export function buildWhere(q: GamesQuery, skip?: Skip): { sql: string; params: P
   const marks = (n: number) => Array.from({ length: n }, () => '?').join(', ');
   const facetSet = (n: number) => `SELECT appid FROM game_facet WHERE facet_id IN (${marks(n)})`;
 
-  // Steam tags: any of the included, none of the excluded. Games whose tags are not
-  // known yet never match a tag filter, in either direction.
+  // Steam tags: every included tag (RPG and Anime means both), none of the excluded.
+  // Games whose tags are not known yet never match a tag filter, in either direction.
   if (skip !== 'tag' && (q.tag.length || q.xtag.length)) {
     parts.push('g.has_tags = 1');
     const tagSet = (n: number) => `SELECT appid FROM game_store_tag WHERE tag_id IN (SELECT tag_id FROM steam_tag WHERE slug IN (${marks(n)}))`;
     if (q.tag.length) {
-      parts.push(`g.appid IN (${tagSet(q.tag.length)})`);
-      params.push(...q.tag);
+      parts.push(`g.appid IN (${tagSet(q.tag.length)} GROUP BY appid HAVING COUNT(*) = ?)`);
+      params.push(...q.tag, q.tag.length);
     }
     if (q.xtag.length) {
       parts.push(`g.appid NOT IN (${tagSet(q.xtag.length)})`);
@@ -93,11 +93,14 @@ export function buildWhere(q: GamesQuery, skip?: Skip): { sql: string; params: P
     const slugs = q[GROUP_KEY[group]];
     if (!slugs.length) continue;
     if (group === 'content_descriptor') {
+      // Descriptors keep their own include/exclude mode: any one of the selected.
       parts.push(`g.descriptors_known = 1 AND g.appid ${q.cdMode === 'exclude' ? 'NOT ' : ''}IN (${facetSet(slugs.length)})`);
+      params.push(...slugs.map((s) => `${group}:${s}`));
     } else {
-      parts.push(`g.appid IN (${facetSet(slugs.length)})`);
+      // Genres, features, themes: every ticked option (RPG and Strategy means both).
+      parts.push(`g.appid IN (${facetSet(slugs.length)} GROUP BY appid HAVING COUNT(*) = ?)`);
+      params.push(...slugs.map((s) => `${group}:${s}`), slugs.length);
     }
-    params.push(...slugs.map((s) => `${group}:${s}`));
   }
   return { sql: parts.join(' AND '), params };
 }
@@ -207,7 +210,9 @@ export function queryGames(db: DB, q: GamesQuery, pageSize = PAGE_SIZE): GamesRe
 export function facetCounts(db: DB, q: GamesQuery): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const group of FACET_GROUPS) {
-    const w = buildWhere(q, group);
+    // All-match groups count with their own selection applied: each option shows how many
+    // games remain if it is added. Descriptors (any-match) count without their own selection.
+    const w = buildWhere(q, group === 'content_descriptor' ? group : undefined);
     // Nothing else filters: plain totals from the index (descriptors only exist where known).
     if (w.params.length === 0) {
       const rows = db

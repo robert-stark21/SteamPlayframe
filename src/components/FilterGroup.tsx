@@ -24,6 +24,8 @@ interface Props {
   onExclude?: (slug: string) => void;
   /** What one option is called in the hint, e.g. "tag". */
   noun?: string;
+  /** Ticked options must all match (tags) rather than any one of them. */
+  matchAll?: boolean;
   defaultOpen?: boolean;
   /** Content descriptor only. */
   mode?: DescriptorMode;
@@ -31,7 +33,7 @@ interface Props {
   note?: string;
 }
 
-export function FilterGroup({ title, searchLabel, facets, selected, counts, onToggle, excluded = [], onExclude, noun = 'option', defaultOpen = true, mode, onModeChange, note }: Props) {
+export function FilterGroup({ title, searchLabel, facets, selected, counts, onToggle, excluded = [], onExclude, noun = 'option', matchAll = false, defaultOpen = true, mode, onModeChange, note }: Props) {
   const id = useId();
   const [open, setOpen] = useState(defaultOpen);
   const [term, setTerm] = useState('');
@@ -71,7 +73,11 @@ export function FilterGroup({ title, searchLabel, facets, selected, counts, onTo
           </fieldset>
         )}
 
-        {onExclude && <p className="fgroup__hint">Tick to include. Use <ExcludeIcon size={14} /> to leave a {noun} out.</p>}
+        {onExclude && (
+          <p className="fgroup__hint">
+            {matchAll ? `Games must have every ticked ${noun}.` : `Games need any one ticked ${noun}.`} Use <ExcludeIcon size={14} /> to leave a {noun} out.
+          </p>
+        )}
 
         {facets.length > VISIBLE && (
           <>

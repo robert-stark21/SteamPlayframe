@@ -44,6 +44,7 @@ export function FilterPanel({ catalog, state, counts, reviewCounts, onChange }: 
           <FilterGroup
             title={title}
             noun={noun}
+            matchAll={group !== 'content_descriptor'}
             searchLabel={search}
             facets={byGroup[group]}
             selected={state[key]}
@@ -71,6 +72,7 @@ export function FilterPanel({ catalog, state, counts, reviewCounts, onChange }: 
             <FilterGroup
               title="Steam tags"
               noun="tag"
+              matchAll
               searchLabel="Search tags, e.g. Visual Novel"
               facets={tags}
               selected={state.tag}
