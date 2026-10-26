@@ -14,6 +14,7 @@ import { GameGrid, GridSkeleton } from './components/GameGrid.tsx';
 import { Pagination } from './components/Pagination.tsx';
 import { SearchBar } from './components/SearchBar.tsx';
 import { Donate, DonateButton } from './components/Donate.tsx';
+import { Analytics } from '@vercel/analytics/react';
 
 const SORT_LABEL: Record<SortKey, string> = {
   rating_desc: 'Best rated',
@@ -311,6 +312,7 @@ export function App() {
           onClose={() => setDrawerOpen(false)}
         />
       )}
+      <Analytics />
     </>
   );
 }
