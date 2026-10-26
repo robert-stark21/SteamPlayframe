@@ -26,6 +26,7 @@
   "dependencies": {
     "@fontsource-variable/hanken-grotesk": "^5.2.0",
     "@fontsource-variable/unbounded": "^5.2.0",
+    "@vercel/analytics": "^2.0.1",
     "qrcode": "^1.5.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
